@@ -1,9 +1,10 @@
-%%writefile train_trend_model.py
+%%writefile train_trend_model_logreg.py
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 
 FEATURE_PATH = Path("/content/drive/MyDrive/Trend_artifacts/season_features.csv")
 TREND_LABELS = Path("/content/drive/MyDrive/Data_labels/season_trend_labels.csv")
@@ -11,91 +12,75 @@ ARTIFACTS = Path("/content/drive/MyDrive/Trend_artifacts")
 
 CLASS_NAMES = ["stripes", "floral", "polka", "geometric", "solid", "gingham"]
 
+def smooth_probs(raw_proba, alpha=0.5):
+    """
+    Smooth model probabilities by mixing them with a uniform prior:
+        p' = (p + alpha/K) / (1 + alpha)
+    Prevents extreme 0/1 probabilities.
+    """
+    K = len(raw_proba)
+    return (raw_proba + alpha / K) / (1 + alpha)
+
 def main():
-    # Load season-level features
-    df = pd.read_csv(FEATURE_PATH)
+    df_feat = pd.read_csv(FEATURE_PATH)
+    df_labels = pd.read_csv(TREND_LABELS)
 
-    # Load trend labels (ground truth for seasons 1–10)
-    labels = pd.read_csv(TREND_LABELS)
+    # Merge labels + features
+    df = df_feat.merge(df_labels, on="season_id", how="left")
 
-    # Merge on season_id
-    m = df.merge(labels, on="season_id", how="left")
+    # Training = Seasons 1–10
+    train_df = df[df["season_id"] <= 10].copy()
 
-    # Separate Season 11 for final prediction
-    train_df = m[m["season_id"] <= 10].copy()
-    test_df  = m[m["season_id"] == 11].copy()
+    # Testing = Season 11
+    test_df = df[df["season_id"] == 11].copy()
 
+    if len(test_df) != 1:
+        print("ERROR: Season 11 row missing or duplicated.")
+        print(test_df)
+        return
+
+    # Split features/targets
     drop_cols = ["season_id", "trend_pattern_id"]
-    X = train_df.drop(columns=drop_cols, errors="ignore")
-    y = train_df["trend_pattern_id"].astype(int)
+    X_train = train_df.drop(columns=drop_cols, errors="ignore")
+    y_train = train_df["trend_pattern_id"].astype(int)
 
     X_test = test_df.drop(columns=drop_cols, errors="ignore")
 
-    # --- LOOCV with Gaussian Naive Bayes ---
-    preds = []
-    trues = []
-    season_ids = []
+    # Logistic Regression + Scaling
+    clf = Pipeline([
+        ("scaler", StandardScaler()),
+        ("lr", LogisticRegression(
+            multi_class="auto",
+            max_iter=5000,    # ensure convergence
+            C=1.0,            # moderate regularization
+            random_state=42,
+        ))
+    ])
 
-    for leave_out in range(1, 11):   # seasons 1..10
-        train_fold = train_df[train_df["season_id"] != leave_out]
-        test_fold  = train_df[train_df["season_id"] == leave_out]
+    # Train on seasons 1–10
+    clf.fit(X_train, y_train)
 
-        X_tr = train_fold.drop(columns=drop_cols, errors="ignore")
-        y_tr = train_fold["trend_pattern_id"].astype(int)
-        X_te = test_fold.drop(columns=drop_cols, errors="ignore")
-        y_te = test_fold["trend_pattern_id"].astype(int)
+    # Predict Season 11
+    raw_proba = clf.predict_proba(X_test)[0]
+    smoothed_proba = smooth_probs(raw_proba, alpha=0.5)
+    pred_id = int(np.argmax(smoothed_proba))
+    pred_name = CLASS_NAMES[pred_id]
 
-        clf = GaussianNB()
-        clf.fit(X_tr, y_tr)
+    print("=== SEASON 11 TREND PREDICTION (Logistic Regression) ===")
+    print("Raw probabilities:     ", np.round(raw_proba, 3))
+    print("Smoothed probabilities:", np.round(smoothed_proba, 3))
+    print(f"Predicted trend: {pred_id} ({pred_name})")
 
-        pred = int(clf.predict(X_te)[0])
-        preds.append(pred)
-        trues.append(int(y_te.values[0]))
-        season_ids.append(int(test_fold["season_id"].iloc[0]))
-
-    acc = accuracy_score(trues, preds)
-    print("=== LOOCV RESULTS (Seasons 1–10, GaussianNB) ===")
-    print(f"LOOCV accuracy: {acc:.3f}")
-
-    loocv_df = pd.DataFrame({
-        "season_id": season_ids,
-        "true_trend_id": trues,
-        "true_trend_name": [CLASS_NAMES[t] for t in trues],
-        "pred_trend_id": preds,
-        "pred_trend_name": [CLASS_NAMES[p] for p in preds],
-    }).sort_values("season_id")
-    print("\nLOOCV true vs predicted:")
-    print(loocv_df)
-
-    loocv_path = ARTIFACTS / "loocv_trend_predictions_nb.csv"
-    loocv_df.to_csv(loocv_path, index=False)
-    print("Saved LOOCV predictions to", loocv_path)
-
-    # --- Train final NB model on all seasons 1–10 ---
-    clf_final = GaussianNB()
-    clf_final.fit(X, y)
-
-    # Predict Season 11's dominant trend
-    if len(X_test) == 1:
-        proba = clf_final.predict_proba(X_test)[0]
-        pred11 = int(np.argmax(proba))
-
-        print("\n=== FINAL PREDICTION FOR SEASON 11 (GaussianNB) ===")
-        print("Predicted trend class:", pred11, f"({CLASS_NAMES[pred11]})")
-        print("Class probabilities:", np.round(proba, 3))
-
-        # Save Season 11 prediction
-        s11 = int(test_df["season_id"].iloc[0])
-        s11_df = pd.DataFrame({
-            "season_id": [s11],
-            "pred_trend_id": [pred11],
-            "pred_trend_name": [CLASS_NAMES[pred11]],
-        })
-        s11_path = ARTIFACTS / "season11_trend_prediction_nb.csv"
-        s11_df.to_csv(s11_path, index=False)
-        print("Saved Season 11 prediction to", s11_path)
-    else:
-        print("ERROR: Season 11 features missing!")
+    # Save prediction
+    season11_id = int(test_df["season_id"].iloc[0])
+    out_df = pd.DataFrame({
+        "season_id": [season11_id],
+        "pred_trend_id": [pred_id],
+        "pred_trend_name": [pred_name],
+    })
+    out_path = ARTIFACTS / "season11_trend_prediction_logreg.csv"
+    out_df.to_csv(out_path, index=False)
+    print("Saved Season 11 prediction to", out_path)
 
 if __name__ == "__main__":
     main()
