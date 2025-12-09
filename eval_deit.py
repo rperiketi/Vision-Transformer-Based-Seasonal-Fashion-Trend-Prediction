@@ -70,7 +70,6 @@ def main():
         df.index, test_size=0.1, stratify=df["pattern_id"], random_state=42
     )
     df_val = df.loc[val_idx].copy()
-
     print(f"Validation set size: {len(df_val)} images")
 
     tfm = get_transforms()
@@ -106,6 +105,7 @@ def main():
 
     out_path = ARTIFACTS / "confusion_matrix_val.png"
     plt.savefig(out_path, dpi=200)
+    
     print("Saved confusion matrix to", out_path)
 
 
