@@ -23,7 +23,7 @@ Visualization tools for patterns, confusion matrices, and seasonal analytics
 Works effectively even with small datasets
 
 
-**SYSTEM ARCHITECTURE**
+##**SYSTEM ARCHITECTURE**
 
 1. Dataset Builder (build_dataset.py)
 
@@ -60,7 +60,7 @@ Multinomial Logistic Regression
 Predicts trend for Season 11
 
 
-**PROJECT STRUCTURE**
+##**PROJECT STRUCTURE**
 
      ├── data/
      │   ├── raw_images/
@@ -88,10 +88,6 @@ Predicts trend for Season 11
      └── README.md
 
 
-
-
-
-
 ##**RESULTS**
 
 Pattern Classifier (DeiT)
@@ -109,18 +105,12 @@ Season Trend Forecasting - Season 11 Prediction:
 
 
 
- 
-
-
 ###**INSTALLATION**
 
      git clone <repo-url>
      cd fashion-trend-prediction
      pip install -r requirements.txt
 
-
-
-     
 
      
 ###**USAGE**
@@ -146,8 +136,6 @@ Season Trend Forecasting - Season 11 Prediction:
 
 
 
-          
-
 
 ###**USE CASES**
 
@@ -161,14 +149,9 @@ Market analytics: Season-by-season pattern distribution insights
 
 
 
-
-
-
 ###**LIMITATIONS**
 
 Performance depends on pattern variety and image quality
-
-
 
 
 
@@ -181,7 +164,6 @@ Real-time forecasting dashboard
 Multi-attribute prediction (color, style, texture)
 
 Multilingual/global fashion trend analysis
-
 
 
 
