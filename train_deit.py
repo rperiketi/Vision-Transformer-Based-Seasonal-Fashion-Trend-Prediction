@@ -1,3 +1,4 @@
+%%writefile train_deit.py
 import math
 from pathlib import Path
 
@@ -11,7 +12,6 @@ from torchvision import transforms as T
 import timm
 from timm.loss import LabelSmoothingCrossEntropy
 
-# ---------- CONFIG ----------
 NUM_CLASSES = 6
 IMG_SIZE = 224
 BATCH_SIZE = 32
@@ -25,8 +25,6 @@ IMG_CSV = Path("/content/drive/MyDrive/Data_labels/img_labels.csv")
 ARTIFACTS = Path("/content/drive/MyDrive/Trend_artifacts")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-
-# ---------- DATASET ----------
 class ClothingDataset(Dataset):
     def __init__(self, df, root_dir: Path, transform):
         self.df = df.reset_index(drop=True)
@@ -68,8 +66,6 @@ def get_transforms(train=True):
             T.Normalize([0.5]*3, [0.5]*3),
         ])
 
-
-# ---------- MODEL ----------
 def build_model():
     model = timm.create_model(
         "deit_small_patch16_224",
@@ -121,11 +117,7 @@ def main():
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
 
     df = pd.read_csv(IMG_CSV)
-
-    # keep seasons 1–10
     df = df[df["season_id"] <= 10].copy()
-
-    # drop unlabeled
     df = df.dropna(subset=["pattern_id"])
     df = df[df["pattern_id"] != ""]
     df["pattern_id"] = df["pattern_id"].astype(int)
