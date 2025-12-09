@@ -92,7 +92,7 @@ Predicts trend for Season 11
 
 
 
-**RESULTS**
+##**RESULTS**
 
 Pattern Classifier (DeiT)
   > Accuracy: ~87%
@@ -112,7 +112,7 @@ Season Trend Forecasting - Season 11 Prediction:
  
 
 
-**INSTALLATION**
+###**INSTALLATION**
 
      git clone <repo-url>
      cd fashion-trend-prediction
@@ -123,7 +123,7 @@ Season Trend Forecasting - Season 11 Prediction:
      
 
      
-**USAGE**
+###**USAGE**
 1.Build dataset
           
           python src/build_dataset.py
@@ -149,7 +149,7 @@ Season Trend Forecasting - Season 11 Prediction:
           
 
 
-**USE CASES**
+###**USE CASES**
 
 Design teams: Detect emerging patterns early
 
@@ -164,7 +164,7 @@ Market analytics: Season-by-season pattern distribution insights
 
 
 
-**LIMITATIONS**
+###**LIMITATIONS**
 
 Performance depends on pattern variety and image quality
 
@@ -172,7 +172,7 @@ Performance depends on pattern variety and image quality
 
 
 
-**FUTURE WORK**
+###**FUTURE WORK**
 
 Add temporal modeling (Transformers/TCN for seasons)
 
@@ -185,7 +185,7 @@ Multilingual/global fashion trend analysis
 
 
 
-**TEAM MEMBERS**
+###**TEAM MEMBERS**
 
 Usha S Vuchidi
 
